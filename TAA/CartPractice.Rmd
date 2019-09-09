@@ -1,0 +1,302 @@
+---
+title: "CART practice"
+author: "Mathias Bourel"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+Install and load rpart package. Another package to make tree is the tree package.
+
+Install partykit package (this package makes better picture and have a more suitable interfase)
+
+Look at rpart.control to see the different parameters:
+
+
+```{r}
+rm(list=ls()) 
+library(rpart)
+library(partykit) 
+?rpart
+?rpart.control
+#rpart.control(minsplit = 20, minbucket = round(minsplit/3), cp = 0.01, 
+#              maxcompete = 4, maxsurrogate = 5, usesurrogate = 2, xval = 10,
+#              surrogatestyle = 0, maxdepth = 30)
+
+
+```
+
+##CLASSIFICATION TREES
+
+We use Iris data
+```{r}
+attach(iris)
+summary(iris)
+```
+
+
+#CART
+```{r}
+model=rpart(Species~.,data=iris)
+model
+```
+
+Take the time to try to understand what is displayed.
+
+```{r}
+plot(model,margin=0.1)
+text(model)
+model.cl=rpart(Species~.,cp=0.001,minsplit=5,iris) 
+summary(model.cl)
+model.cl
+```
+
+Take the time to try to understand what is displayed.
+
+rpart uses a default cp value of 0.01 if you don't specify one in prune.
+
+```{r}
+# x11()
+# par(mfrow=c(3,2))
+plot(model.cl,margin=0.1)
+text(model.cl,all=T)
+plot(model.cl, uniform=T)
+text(model.cl, use.n=T, all=T)
+plot(model.cl, branch=0)
+text(model.cl, use.n=T,col="red")
+plot(model.cl, branch=.7)
+text(model.cl, use.n=T)
+plot(model.cl, branch=.4, uniform=T, compress=T)
+text(model.cl, all=T,use.n=T)
+plot(model.cl, branch=.2, uniform=T, compress=T, margin=.1)
+text(model.cl, all=T, use.n=T, fancy=T)
+
+```
+
+
+try to understand the different graphical parameters
+
+
+another way to see the output
+```{r}
+rparty.tree = as.party(model.cl)	
+plot(rparty.tree)
+```
+
+Classification error over the train sample
+```{r}
+pred=predict(model.cl,type="class",iris)
+
+table(pred,true=iris[,5])
+error=3/150
+error
+
+#or
+error = mean(pred!= iris[,5])
+error
+
+```
+
+
+
+Classification error over newdata
+```{r}
+newdata = rbind(c(5,3.45,1,0.2),c(5.8,3.5,5.11,2))  
+dimnames(newdata)=list(NULL, c("Sepal.Length","Sepal.Width","Petal.Length","Petal.Width"))
+newdatas=data.frame(newdata)
+pred=predict(model.cl,type="class",newdata=newdatas)
+pred
+
+
+pred=predict(model.cl,type="class",newdata=newdatas)
+pred
+pred=predict(model.cl,type="prob",newdata=newdatas)
+pred
+pred=predict(model.cl,type="vector",newdata=newdatas)
+pred
+```
+
+
+
+
+
+Classification error over a test sample
+Divide the dataset 30 times randomly in train and test samples. For each split, fit a classification tree with the train sample and compute its prediction over the test sample.
+At the end, compute the mean, with standard deviation, of these errors. 
+```{r}
+K=30	
+  error.cl=NULL
+	n = nrow(iris)
+	for(k in 1:K)	{
+		smp=sample(n,round(n/3))
+		learn=iris[-smp,]
+		test=iris[smp,]
+			model.cl.learn=rpart(Species~.,cp=0.001,minsplit=5,data=learn) 
+			pred.cl=predict(model.cl.learn,type="class",test)
+			error.cl[k] = mean(pred.cl!= test[,5])
+		}				
+	
+mean.error.cl=mean(error.cl)
+sd.error.cl=sd(error.cl)
+mean.error.cl
+sd.error.cl
+```
+
+
+
+Pruning
+```{r}
+plotcp(model.cl) 
+printcp(model.cl) 
+```
+
+
+According to the criterion of least error by cross validation we are left with the tree 5.
+
+According to criterion 1-SE: with what tree do we stay?
+
+1-SE Rule: We are left with the simplest tree that has a minor error at the lowest error by VC + 1se (xerror + xstd).
+
+BE CAREFUL: THESE RESULTS MAY VARY FOR THE DIFFERENT STEPS BECAUSE WHEN CALCULATING THE
+ERROR VALIDATION CROSSED, WE ARE SEPARATING THE SAMPLE RANDOMLY AND IT CAN BRING DIFFERENT RESULTS.
+
+
+Contents of the printcp table:
+Remember that this table is normalized so that the error in the root node is 1
+cp: cost-complexity parameter (as we have said before it is alpha / error by resolution in root node)
+nsplit: number of divisions (nsplit + 1 = number of terminal nodes)
+rel error: relative error
+xerror: error by cross validation
+xstd: standard deviation (it helps us analyze the 1-SE rule)
+
+
+Let see (as an exercise) what happen if I choose to prune the tree to keep the sub tree with cp = 0.010.
+
+
+```{r}
+model.cl.pod=prune(model.cl,cp=0.010) 
+plot(model.cl.pod,margin=0.1)
+text(model.cl.pod, use.n=T,col="blue")
+```
+
+
+Classification error of the prunned tree
+
+
+```{r}
+K=30	
+	error.cl.pod=NULL
+	n = nrow(iris)
+	for(k in 1:K)	{
+		smp=sample(n,round(n/3))
+		learn=iris[-smp,]
+			test=iris[smp,]
+			model.cl.pod.learn=rpart(Species~.,cp=0.010,learn) 
+			pred.cl.pod.learn=predict(model.cl.pod.learn,type="class",test)
+			error.cl.pod[k] = error = mean(pred.cl.pod.learn!= test[,5])}
+	
+mean.error.cl.pod=mean(error.cl.pod)
+sd.error.cl.pod=sd(error.cl.pod)
+mean.error.cl.pod
+sd.error.cl.pod
+
+mean.error.cl
+sd.error.cl	
+```
+			
+				
+	
+
+
+
+## 2- Regression trees
+We use airquality data
+
+```{r}
+data=airquality
+attach(data)
+model.rg=rpart(Ozone~Solar.R+Wind+Temp,data=data)
+model.rg
+summary(model.rg)
+plot(model.rg,margin=0.1)
+text(model.rg, use.n=T)
+
+```
+
+
+
+Compute pseudo-R2
+(deviance root node - deviance tree)/desviance root node
+where do you read deviance for model.rg?
+
+Predictions
+
+```{r}
+predict(model.rg)
+newdata = rbind(c(315,12,60),c(270,9,65))  
+dimnames(newdata)=list(NULL, c("Solar.R","Wind","Temp"))
+newdata=data.frame(newdata)
+pred=predict(model.rg,newdata)
+pred
+
+```
+
+
+
+Kept the tree according to the cp criterion (crossvalidation and 1-SE Rule).
+
+
+```{r}
+printcp(model.rg)
+plotcp(model.rg) 
+```
+
+Here some ways to select cp:
+
+```{r}
+#With crossvalidation
+cp.optx = model.rg$cptable[which.min(model.rg$cptable[,"xerror"]),"CP"]
+cp.optx
+
+#with 1-SErule
+xerror=model.rg$cptable[,4]
+xstd <- model.rg$cptable[, 5]
+t.opt <- min(seq(along = xerror)[xerror <= min(xerror) + xstd]) 
+cp.opt1SE=model.rg$cptable[t.opt,1]
+cp.opt1SE
+#We kept with the tree which satisfies 1SE rule
+model.rg.pr=prune(model.rg,cp=cp.opt1SE)
+plot(model.rg.pr,branch=0.1,margin=0.1)
+text(model.rg.pr, use.n=T,col="orange")
+```
+
+
+
+Classification error
+```{r}
+K=30	
+	error.rg.pr=NULL
+	n = nrow(data)
+	for(k in 1:K)	{
+		smp=sample(n,round(n/3))
+		learn=data[-smp,]
+		learn=learn[,1:4]
+		test=data[smp,]
+		test=test[,1:4]
+			model.rg.pr.learn=rpart(Ozone~Solar.R+Wind+Temp,learn)
+			pred= predict (model.rg.pr.learn,test)	
+			sin.na=na.omit(cbind(test[,1],pred))
+			error.rg.pr[k] = sqrt(mean((sin.na[,1]-sin.na[,2])^2)) 
+	}
+	
+mean.error.rg.pr=mean(error.rg.pr)
+sd.error.rg.pr=sd(error.rg.pr)
+
+mean.error.rg.pr
+sd.error.rg.pr
+	
+```
+			
+				
+The final model is the one build over all data!

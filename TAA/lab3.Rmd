@@ -1,0 +1,354 @@
+---
+title: "Laboratorio 3"
+author: "Bruno Olivera"
+date: "4/21/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Práctico 3
+## Ejercicio 6
+
+From the dataset spam of the kernlab library:
+  
+  a) Compute and draw the default tree $T$ provided by $\textbf{rpart}$ and the decision stump. Look at $\textbf{T\$frame}$ and examine it.
+  b) 1) Compute and draw the optimal tree $T_1$ with associate $\textbf{cp}$ parameter given by cross-validation error.
+    2) Compute and draw the optimal tree $T_2$ with associate $\textbf{cp}$ parameter given by the $\textbf{1-SE}$ rule.
+    3) Compare $T$, $T_{max}$, $T_1$ and $T_2$ in learning and in test samples.
+  c) Apply Bagging and Random Forest (default) and compare the prediction errors with a single tree.
+  d) Study the evolution of the $\textbf{OOB}$ error with respect to $\textbf{ntree}$ using $\textbf{do.trace}$.
+  e) Calculate the variable importance of the spam variables for Random Forest (default).
+  f) Calculate the importance of spam variables for stumps Random Forest.
+  g) Illustrate the influence of the $\textbf{mtry}$ parameter on the $\textbf{OOB}$ error and on the variable importance.
+  h) Train a CART, BAGGING, RANDOM FOREST and SVM model inside a loop(50 iterations) splitting the dataset into train/test in each iteration. Compute test error for each model in each iteration. Determine best model calculating the mean error for each model. Train the best model over the entire dataset.
+$\newline$
+
+$\newline$
+a) Generamos un arbol de decisión y un decision stump y computamos el error de test.
+```{r 6-a}
+library(rpart)
+library(rpart.plot)
+library(partykit)
+library(kernlab)
+set.seed(2019)
+
+data(spam)
+
+# separamos los datos en train/test 
+smp_size = floor(2/3 * nrow(spam))
+train_ind = sample(seq_len(nrow(spam)), size=smp_size)
+train = spam[train_ind,]
+test = spam[-train_ind,]
+
+# generamos y graficamos el arbol por defecto
+T=rpart(type~.,data=train)
+prp(T,yesno=0)
+
+# computamos el error en test del arbol T
+T_pred=predict(T,type="class",test)
+T_error=sum(T_pred!=test[,58])/dim(test)[1]
+T_error
+
+# generamos y graficamos el decision stump
+DS=rpart(type~.,data=train,maxdepth=1)
+prp(DS,extra=2,yesno=0)
+
+# computamos el error en test del decision stump
+DS_pred=predict(DS,type="class",test)
+DS_error=sum(DS_pred!=test[,58])/dim(test)[1]
+DS_error
+
+# Analizamos T$frame
+T$frame
+```
+
+En T$frame para cada nodo tenemos la siguiente información:
+
++ **var**: nombre de la variable usada en el split del nodo o "\<leaf\>" en caso de ser un nodo hoja
+
++ **n**: número de observaciones que llegan al nodo
+
++ **wt**: la suma de los pesos para las observaciones que llegan al nodo (en este caso no estamos usando pesos por lo que **wt** coincide con **n**).
+
++ **dev**: la desviación del nodo, es decir la cantidad de observaciones mal clasificadas
+
++ **yval**: la clase asignada al nodo
+
++ **complexity**: el parámetro de complejidad (**cp**) que haría que el nodo colapse. Es decir que si entrenamos el modelo con un **cp** mayor a este valor, el nodo no va a existir en este nuevo modelo.
+
++ **ncompete**: el número de splits competidores que se almacenan. Suele ser de interés saber no solamente cuál es la mejor variable para hacer el split, sino también cuál salió segunda, tercera, etc.
+
++ **nsurrogate**: el número de splits surrogativos que se almacenan.
+
++ **yval2**: una matriz con la siguiente información adicional:
+
+    + **V1**: la clase asignada al nodo (coincide con **yval**)
+    + **V2**: la cantidad de muestras de la clase 1 en el nodo (igual a **n-dev** si **yval**=1 o a **dev** si **yval**=2)
+    + **V3**: la cantidad de muestras de la clase 2 en el nodo (igual a **dev** si **yval**=1 o a **n-dev** si **yval**=2)
+    + **V4**: probabilidad de la clase 1 en el nodo (coincide con **V2/n**)
+    + **V5**: probabilidad de la clase 2 en el nodo (coincide con **V3/n**)
+    + **nodeprob**: la probabilidad del nodo. Vale 1 para la raíz, y debe sumar 1 entre las probabilidades de las dos hojas de un nodo. Por ejemplo en este caso se puede ver que la **nodeprob** del nodo 2) es 5.78 y la del nodo 3) es 4.22 lo cual suma 1. 
+
+
+\newpage
+$\newline$
+b)
+
+  1) Computamos el arbol óptimo para cross-validation. Para esto nos fijamos en la cptable del arbol maximal y nos quedamos con el cp del arbol con menor error de cross-validation.
+```{r 6-b-1}
+# generamos el arbol maximal para luego calcular el 
+# cp de cross-validation y el cp de la regla 1-SE
+Tmax=rpart(type~.,data=train,cp=0)
+
+# calculamos el cp dado por el error de cross-validation
+CP_cross_validation = Tmax$cptable[which.min(Tmax$cptable[,"xerror"]),"CP"]
+CP_cross_validation
+
+# computamos y graficamos el arbol óptimo para cross-validation
+T1=rpart(type~.,data=train,cp=CP_cross_validation)
+prp(T1,yesno=0)
+```
+
+  2) Computamos el arbol óptimo para la regla 1-SE. Para esto hallamos el arbol cuyo error de cross-validation es el mínimo, a ese valor le sumamos la desviación, y luego hallamos el arbol más simple (menos nodos) cuyo error de cross-validation sea menor que esta suma. 
+```{r 6-b-2}
+# calculamos el cp dado por la regla 1-SE
+xerror = Tmax$cptable[,4]
+xstd   = Tmax$cptable[,5]
+t.opt  = min(seq(along = xerror)[xerror <= min(xerror) + xstd[which.min(xerror)]])
+CP_1_SE = Tmax$cptable[t.opt,1]
+CP_1_SE
+
+# computamos y graficamos el arbol óptimo para la regla 1-SE
+T2=rpart(type~.,data=train,cp=CP_1_SE)
+prp(T2,yesno=0)
+```
+
+  3) Comparamos los errores de test para los árboles $T$,$T_{max}$,$T_1$,$T_2$. El error para $T$ ya lo tenemos, falta calcular los otros tres.
+```{r 6-b-3}
+# computamos el error de test para Tmax
+Tmax_pred=predict(Tmax,type="class",test)
+Tmax_error=sum(Tmax_pred!=test[,58])/dim(test)[1]
+
+# computamos el error de test para T1
+T1_pred=predict(T1,type="class",test)
+T1_error=sum(T1_pred!=test[,58])/dim(test)[1]
+
+# computamos el error de test para T2
+T2_pred=predict(T2,type="class",test)
+T2_error=sum(T2_pred!=test[,58])/dim(test)[1]
+
+# comparamos los errores de test para T,Tmax,T1,T2
+errors=rbind("T"=T_error,"Tmax"=Tmax_error,"T1"=T1_error,"T2"=T2_error)
+colnames(errors)="test_error"
+errors
+
+# graficamos los errores de test
+barplot(t(errors),col="darkblue",main="Error de Test")
+```
+
+\newpage
+$\newline$
+c) Generamos modelos BAGGING y RANDOM FOREST y comparamos los errores de predicción con el modelo de un solo arbol
+```{r 6-c}
+library(ipred)
+library(randomForest)
+
+# entrenamos un modelo bagging y calculamos su error de test
+bag=bagging(type~.,data=train,cp=0.01,coob=TRUE)
+bag_pred=predict(bag,type="class",test)
+bag_error=sum(bag_pred!=test[,58])/dim(test)[1]
+
+# entrenamos un modelo random forest y calculamos su error de test
+rf=randomForest(type~.,data=train,cp=0.01,coob=TRUE)
+rf_pred=predict(rf,type="class",test)
+rf_error=sum(rf_pred!=test[,58])/dim(test)[1]
+
+# comparamos los errores de test para bag,rf y T
+errors=rbind("SINGLE TREE"=T_error,"BAGGING"=bag_error,"RANDOM FOREST"=rf_error)
+colnames(errors)="test_error"
+errors
+
+# graficamos los errores de test
+barplot(t(errors),col="darkred",main="Error de Test")
+```
+
+\newpage
+$\newline$
+d) Estudiamos la evolución del error OOB según **ntree** con el parámetro **do.trace**. En cada fila vemos el error OOB y el error de clasificación para cada clase.
+```{r 6-d}
+# computamos un randomForest con la opción do.trace (lo hacemos cada 50 árboles
+# para no imprimir las 500 líneas, más abajo hacemos una gráfica teniendo en
+# cuenta los 500 valores).
+rf_trace=randomForest(type~.,data=train,cp=0.01,coob=TRUE,do.trace=50)
+
+# para un análisis más a fondo graficamos la evolución del error
+plot(100*rf_trace$err.rate[,1], main="Error OOB con respecto al número de árboles",
+     type="l",ylab="OOB error(%)",xlab="ntree",lwd=2,col="blue")
+
+```
+
+\newpage
+$\newline$
+e) Analizamos la importancia de las variables para el modelo Random Forest.
+```{r 6-e}
+# obtenemos la importancia de las variables y las ordenamos decrecientemente
+rf_importance=importance(rf)[order(importance(rf),decreasing=TRUE),]
+
+# graficamos la importancia de las variables
+barplot(rf_importance[1:25], main="Random Forest variable importance",
+        las=2,cex.names=0.6,ylim=c(0,200),margin=1,col="darkgreen")
+# graficamos la importancia de las variables
+barplot(rf_importance[26:57], main="Random Forest variable importance",
+        las=2,cex.names=0.6,ylim=c(0,200),margin=1,col="darkgreen")
+```
+
+\newpage
+$\newline$
+f) Analizamos la importancia de las variables para el modelo stump Random Forest.
+```{r 6-f}
+rf_stump=randomForest(type~.,data=train,cp=0.01,maxdep=1,coob=TRUE)
+
+# obtenemos la importancia de las variables y las ordenamos decrecientemente
+rf_stump_importance=importance(rf_stump)[order(importance(rf_stump),decreasing=TRUE),]
+
+# graficamos la importancia de las variables
+barplot(rf_stump_importance[1:25], main="Stump Random Forest variable importance",
+        las=2,cex.names=0.6,ylim=c(0,200),margin=1,col="orange")
+# graficamos la importancia de las variables
+barplot(rf_stump_importance[26:57], main="Stump Random Forest variable importance",
+        las=2,cex.names=0.6,ylim=c(0,200),margin=1,col="orange")
+```
+
+\newpage
+$\newline$
+g) Analizamos la influencia del parámetro $\textbf{mtry}$ en el error OOB y la importancia de las variables. El parámetro $\textbf{mtry}$ determina la cantidad de variables candidatas que se tienen en cuenta en cada split. Se suele usar $sqrt(p)$ siendo $p$ la cantidad de variables (para el caso de spam se usa $\textbf{mtry}=7$ por defecto).
+
+Para hacer este estudio vamos a hacer un bucle desde $k=1$ a $k=25$ generando un modelo Random Forest con $\textbf{mtry}=k$ para cada valor de $k$, guardando el error OOB y la importancia de las variables en cada iteración. Al final graficamos los resultados.
+```{r 6-g}
+# variables para ir guardando los resultados
+importance=NULL
+oob=NULL
+
+for(k in 1:25){
+  # generamos el random forest con mtry=k
+  rf=randomForest(type~.,data=train,coob=TRUE,mtry=k)
+  # almacenamos la importancia para este valor de k
+  importance=cbind(importance,rf$importance)
+  # almacenamos el error OOB para este valor de k
+  oob=cbind(oob,rf$err.rate[500,1])
+}
+
+# graficamos el error OBB con respecto al mtry
+plot(1:25,oob,type="l",main="Error OOB según mtry",
+     lwd=2,col="red",xlab="mtry",ylab="error OOB")
+
+# graficamos la importancia de las variables con respecto al mtry
+matplot(t(importance),type="l",lwd=2,xlab="mtry",ylab="importancia variable")
+```
+
+
+Como la gráfica anterior está un poco sobrecargada, vamos a graficar la importancia de algunas variables aparte para  que se pueda apreciar mejor la influencia de mtry
+
+
+```{r 6-g-aux}
+# gráficas para las dos variables más importantes en el caso por defecto
+plot(1:25,importance[52,],type="l",
+     lwd=2,col="red",xlab="mtry",ylab="importancia de la variable")
+lines(1:25,importance[53,],type="l",
+     lwd=2,col="blue",xlab="mtry",ylab="importancia de la variable")
+legend("topleft",x.intersp=0.5,
+       col=c("red","blue"),lwd=2,
+       legend=c(rownames(importance)[52],rownames(importance)[53]))
+
+# grvficas para dos variables con importancia cercana al promedio en el caso por defecto
+plot(1:25,importance[26,],type="l",
+     lwd=2,col="red",xlab="mtry",ylab="importancia de la variable")
+lines(1:25,importance[46,],type="l",
+     lwd=2,col="blue",xlab="mtry",ylab="importancia de la variable")
+legend("topright",x.intersp=0.5,
+       col=c("red","blue"),lwd=2,
+       legend=c(rownames(importance)[26],rownames(importance)[46]))
+
+# graficas para las dos variables menos importantes en el caso por defecto
+plot(1:25,importance[38,],type="l",
+     lwd=2,col="red",xlab="mtry",ylab="importancia de la variable")
+lines(1:25,importance[47,],type="l",
+     lwd=2,col="blue",xlab="mtry",ylab="importancia de la variable")
+legend("topright",x.intersp=0.5,
+       col=c("red","blue"),lwd=2,
+       legend=c(rownames(importance)[38],rownames(importance)[47]))
+```
+
+\newpage
+$\newline$
+h) Entrenamos modelos CART, BAGGING, RANDOM FOREST y SVM en un bucle de 50 iteraciones, separando el dataset en train/test en cada iteración(con seeds distintas). Almacenamos los errores de test de cada modelo en cada iteración. Al terminar el bucle graficamos los errores de cada modelo para compararlos y nos quedamos con el mejor modelo. El mejor modelo va a ser el que tenga la menor media de error. Finalmente entrenamos el mejor modelo sobre el dataset spam entero.
+```{r 6-h}
+library(e1071)
+
+error.table = NULL
+
+for(k in 1:50){
+  set.seed(2019+k)
+  # separamos datos en train/test
+  smp_size = floor(2/3 * nrow(spam))
+  train_ind = sample(seq_len(nrow(spam)), size = smp_size)
+  train =  spam[train_ind,]
+  test  = spam[-train_ind,]
+
+  # entrenamos modelos
+  model.cart =        rpart(type~.,data=train)
+  model.bag  =      bagging(type~.,data=train)
+  model.rf   = randomForest(type~.,data=train)
+  model.svm  =          svm(type~.,data=train)
+
+  # obtenemos predicciones
+  pred.cart = predict(model.cart, type="class", test)
+  pred.bag  = predict(model.bag,  type="class", test)
+  pred.rf   = predict(model.rf,   type="class", test)
+  pred.svm  = predict(model.svm,  type="class", test)
+
+  # computamos los errores
+  error.cart = sum(pred.cart != test[,58]) / dim(test)[1]
+  error.bag  = sum(pred.bag  != test[,58]) / dim(test)[1]
+  error.rf   = sum(pred.rf   != test[,58]) / dim(test)[1]
+  error.svm  = sum(pred.svm  != test[,58]) / dim(test)[1]
+
+  # los agregamos a la tabla
+  error.table = rbind(error.table,c(error.cart,error.bag,error.rf,error.svm))
+
+}
+
+# graficamos los errores
+colnames(error.table)=c("Error Cart","Error Bagging",
+                        "Error R. Forest","Error SVM")
+matplot(error.table,type="l",lwd=2,lty=1,col=c("red","blue","green","orange"))
+legend("bottom",inset=c(0,-.35),xpd=TRUE,horiz=TRUE,x.intersp=0.5,
+       cex=.9,text.width=c(10,11,0,12),box.lty=0,
+       legend=c(colnames(error.table)[1],colnames(error.table)[2],
+                colnames(error.table)[3],colnames(error.table)[4]),
+       col=c("red","blue","green","orange"),bg="white",lwd=c(2,2,2,2))
+
+# calculamos la media de los errores
+error.means=colMeans(error.table); error.means
+
+# nos quedamos con el mejor y entrenamos sobre todo el data set
+index = which.min(error.means)
+
+invisible(ifelse(index==1,
+                 model.best<-rpart(type~.,data=spam),
+                 ifelse(index==2,
+                        model.best<-bagging(type~.,data=spam),
+                        ifelse(index==3,
+                               model.best<-randomForest(type~.,data=spam),
+                               model.best<-svm(type~.,data=spam)))))
+
+model.best
+```
+

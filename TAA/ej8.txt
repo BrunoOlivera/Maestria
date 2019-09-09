@@ -1,0 +1,7 @@
+"Feature_1" "Feature_2" "Feature_3" "Feature_4" "Label"
+"1" 4 5 1 5 "class_1"
+"2" 3 3 4 4 "class_2"
+"3" 4 6 5 2 "class_2"
+"4" 3 3 9 1 "class_3"
+"5" 6 9 7 9 "class_1"
+"6" 6 6 8 7 "class_3"
