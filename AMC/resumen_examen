@@ -1,0 +1,188 @@
+-Data Mining -> process of discovering patterns and relationships in data, with an emphasis on large observational databases.
+
+Descriptive methods
+Objective: detect patterns on data by grouping units, attributes or both.
+Data is usually unlabeled so we use non supervised approaches.
+
+Predictive methods
+Objective : construct a mapping using available instance that can be used to predict new instances.
+Data is labeled so we use supervised approaches.
+
+Machine Learning
+Idea: from a (training) data set, build and train a mathematical model f that will allow, given a new observation, to predict the category to which it belongs or some relevant output value. Predictor f is construct generally without any assumption on distribution or on nature of the dataset.
+
+-----------------------------------------INTRO-----------------------------------------------------------------
+
+error cuadratico medio (MSE) -> evaluar calidad de un predictor en regresion (media del cuadrado de los errores)
+
+test-MSE -> error de clasificacion
+
+clasificacion -> ratio de mal clasificados
+
+sesgo-varianza -> sesgo relcioando al error del modelado, varianza relacionada al modelo (mayor flexibilidad mayor var, menor sesgo) (sobre valor esperado de MSE)
+
+------------------------------------------RLS------------------------------------------------------------------
+El objetivo de la regresi´on lineal simple es de modelizar la variable aleatoria Y por una cierta funci´on de X, f(X) es la mejor en el sentido que minimiza el error cuadr´atico medio => E((Y − f (X))^2) (lineal mejor funcion si las variables son gaussianas)
+error aleatorio -> Y=f(x)+eps
+Y:var aleatoria dependiente a predecir
+x:var independiente que se usa para predecir
+
+hallar βb0 y βb1 estimadores de β0 y β1  que minimizan la suma de los errores cometidos al cuadrado
+ei(residuo) -> observado menos predecido y - ygorro
+SCR -> suma de los cuadrados residuales -> Si el SCR es pequeño el ajuste es bueno, y si es grande el ajusto es malo
+derivando con respecto a β0 y β1 e igualando a cero, hallamos los βb0 y βb1 que minimizan el error cuadratico [β0 = E(Y) − β1.E(X) β1=Cov(X,Y)/Var(X)]
+
+se puede generalizar para polinomios de mayor grado (el modelo es lineal en los coeficientes!) (SCR es minimo en a proyeccion ortogonal)
+
+Intervencion de la estadistica -> suponemos que eps viene de una var aletoria e imponemos que cumplan las condiciones de gauss-markov:
+1)E(epsi)=0
+2)Var(epsi) = E(epsi^2) = σ^2(cte) (propiedad de homocedasticidad)
+3)Los residuos deben ser incorrelados
+
+Test de linealidad: estad´ıstico F = MSR/MSE [MSR=SSR/1, MSE=SCR/(n−2)]
+Se rechaza H0 si F > Fα(1,n−2)
+Test sobre los parámetros: H0 : β1 = b1 para un p-valor chico se rechaza(caso b1=0) (t-student(n-2)(α/2) se puede usar para dar un IC de β1)
+análogo para β0
+Se peude dar un intervalo de confianza para σ^2: usando SCR y chi-cuadrado [σ^2 = SCR/n−d−1][SCR/σ^2 ~ chi-square(n-2)]
+
+r=Sxy/SxSy
+
+SST(total) = SCR(NO explicada) + SSReg(explicada)
+R^2 : coeficiente de determinaci´on -> VE(SSReg)/VT(SST) -> medida de la bondad de ajuste (suponiendo que el modelo es lineal) (NO es una medida de adecuacion del modelo, )
+Rtecho^2 :coef de det ajustado (si es muy similar a R^2 el modelo fue sobreajustado)
+
+IC para la respuesta media: E(Y|X=x0) -> (t-student /sqrt((SCR/n-2) / (X0-xtecho)^2/Sx + 1/n)
+IC para la prediccion: yb0 -> (t-student /sqrt((SCR/n-2) / (X0-xtecho)^2/Sx + 1/n + 1)
+
+Los radios de los dos intervalos crecen cuando x0 se aleja de xtecho
+Los intervalos de predicci´on para una nueva observaci´on son m´as amplios que los intervalos de confianza para los par´ametros desconocidos. El tama˜no del intervalo de confianza para un par´ametro depende de la incertidumbre de la estimaci´on que hacemos a partir de una muestra. Mientras que el tama˜no del intervalo de predicci´on para una nueva observaci´on tiene dos fuentes de incertidumbre: una debida a la estimaci´on de los par´ametros desconocidos y la otra es propia de la aleatoriedad que suponemos (es una variable aleatoria!).
+
+Outliers:
+H llamada hat matriz (la que “pone el gorro” en la Y ), la matriz de proyecci´on sobre <Xi>, es decir Yb = HY
+Los terminos hii dan una medida del impacto de yi en la estimaci´on de ybi. Este impacto est´a directamente relacionado con el alejamiento de xi con xtecho.
+-trabajar con residuos estandarizados(internos) -> (ri = ei/sqrt(σgorro^2(1 − hii)))
+-calcular los residuos studentizados externamente o R-Student
+Si no hay explicaci´on aparente frente a un outlier se debe hacer el an´alisis con y sin ´el, a la espera de nuevos datos, o alguna explicaci´on adicional
+Si no se elimina
+
+Nivel de un punto: datos que ejercen mayor influencia sobre el modelo de regresion(puntos influyentes)(leverage-hii-hatvalues) la tr(H) es decir la suma de los hii es d+1, entonces se puede determinar cuánto contribuye yi a la estimacion de ybi con respecto a los otros y's
+En general, si la observaci´on i tiene leverage cercano a 1, entonces la estimaci´on estar´a cercana a yi y por lo tanto ei = yi − ybi ser´a chico
+Tener leverage alto puede ser bueno o malo
+
+Distancia de Cook: La influencia de un punto i puede ser vista tambi´en comparando la estimaci´on con o sin ´el
+------------------------------------------RLM------------------------------------------------------------------
+Test de linealidad: estad´ıstico F = MSR/MSE [MSR=SSR/d, MSE=SCR/(n-d−1)] H0: todos los betas son 0
+Test sobre los parametros: Con estos estad´ısticos es posible testear uno a uno la nulidad de los distintos par´ametros de la regresi´on o de construir intervalos de confianza. Cuidado que se testea la nulidad de cada par´ametro suponiendo que est´an los otros (no son independientes!)
+
+Modelo puede ser globalmente significativo: al menos una variable tiene accion sobre Y, pero ninguna ser significativa por si misma
+R^2 = 1 - SCR/SST 
+R^2 ajustado -> 1 - (SCR/(n-d-1))/SST/(n-1)
+
+Multicolinealidad: El Factor de Inflaci´on de la Varianza(FIV) de la variable xj se define como: FIVj = 1/(1 − Rj^2) (con Rj^2 el de la regresion de xj contra todas las demás variables)
+cuando xj no depende linealmente de las dem´as variables -> FIVj = 1.
+si hay dependencia FIV > 1. Si FIV > 10 grave problema. sols: eliminar var, combinar colineales en una unica estand. y promed.
+
+Seleccion de modelos:
+minimos cuadrados podria no ser adecuado -> baja precision en las predicciones, falta de interpretabilidad
+alternativas: -selleccion de subconjuntos, regularizacion(contraccion de coeficientes en relacion al ajuste por minimos cuadrados)(Ridge regression, lasso), reduccion de dimensiones(Partial Least Squares Regression)
+
+la seleccion entre todos los posibles modelos es muy costosa computacionalmente (2^p combinaciones)
+modelos seccuenciales:
+Forward: se aaranca con el modelo nulo y se va agregando una variable en cada paso y nos quedamos con el mejor modelo(menor SCR mayor R^2) local a cada paso (greedy) luego se compara el modelo elgido en cada paso con alguna tecnica que compare modelos de distintos tamanios y penaliza por complejidad(AIC - importa la resta entre los AIC de los modelos, el de menor AIC es mejor)
+Backwards: analogo partiendo del completo y quitando una en cada paso
+Stepwise: hibrido, se puede poner o sacar en cada paso
+
+------------------------------------------RL-------------------------------------------------------------------
+µ = E(Y|X) -> g(µ) = X'β = ν (GLM)
+Todo GLM tiene:
+-componente aleatorio: Y representada por µ
+-componente sistemático: combinacion lineal de las variables explicativas
+-funcion link o de enlace: que relaciona las anteriores
+
+en regresion logistica: funcion link->logit: ln(p/1-p)     F(t)=1/(1+e^-t)[funcion de distribucion logistica]
+
+Estimacion de parametros: se buscan los param´etros θ = (β0, β1, . . . , βd ) que maximicen el logaritmo de la funci´on de verosimilitud L:
+funcion de verosimilitud -> productoria de P(X=x1).P(X=x2)....P(X=xn)
+
+Test sobre significancia del modelo: H0: βi=0 para todo i -> se utiliza la desvianza nula(modelo nulo) y la desvianza residual(modelo completo) hay un estadistico para comparar con chi cuadrado
+Se puede generalizar para modelos anidados de cualquier tamaño se compara la resta de las desvianzas con chi^2(p-q) si es mayor rechazamos H0
+
+AIC Akaike
+
+Odds -> p/(1-p) cuantas veces es mas probable que ocurra Y=1 respecto a que no ocurra(Y=0)
+Odds-ratio(OR) -> OR(x)=Odds(x+1)/Odds(x)[e^kβ1 aunmento si X aumenta k] , OR(xi,xj)=Odds(xi)/Odds(xj)
+
+lo que nos dice este coeficiente es el cambio en el log(p/1-p) al aumentar en una unidad la Xj.
+Una forma de interpretar los coeficientes βj de forma gen´erica es: si son positivos, entonces al aumentar Xj aumenta la probabilidad de ocurrencia de default, si son negativos, al aumentar Xj, esta probabilidad disminuye
+
+Ajuste -> desvianza
+
+predicciones generalmente se hace con maximo a posteriori
+
+Curva ROC: representación gráfica de la sensibilidad frente a la especificidad para un sistema clasificador binario según se varía el umbral de discriminación
+sensibilidad: VP/(VP+FN)
+especificidad: VN/(VN+FP)
+------------------------------------------AD-------------------------------------------------------------------
+
+Problema: Se dispone de un conjunto amplio de individuos que pueden venir de dos o m´as poblaciones. Para cada individuo se observa una variable aleatoria p dimensional. Se desea clasificar un nuevo individuo, con valores de las variables conocidas, en una de las poblaciones.
+
+Se puede considerar como un an´alisis de regresi´on donde la variable dependiente es categ´orica (etiqueta de cada grupo) y las variables independientes son continuas. Queremos encontrar una relaci´on lineal entre estas variables que mejor discrimine a los individuos.
+
+Discriminar, clasificar
+
+(LDA) -> misma matriz de covarianzas
+
+Distancia de Mahalanobis: distancia que tiene en cuenta Σ (matriz de covarianzas)
+
+operando y si π1 = π2 y los costes son iguales -> clasificamos en poblacion 2 si D1^2 > D2^2 (dist de x a la poblacion 1 (µ1) > dist de x a la poblacion 2 (µ2))
+
+w = Σ^−1.(µ2 − µ1)
+se puede llegar a una fórmula lineal, L(x)=w'x+wo -> clasificamos en la poblacion 2 si w'x+wo > 0
+Pasos para clasificar:
+1)calcular w
+2)construir las variables indicadoras discriminantes z = w'x
+3)Clasificar en la población donde la distancia |z0 − mi| es mínima siendo z0 = w'x0 y mi = w'µi
+
+Var(z) = D^2 (distancia entre µ1 + µ2)
+Var(z) = m2 − m1
+
+considerando u = w/||w||
+Se puede proyectar sobre u el punto medio de las medias de las pobalaciones (µ2 + µ1)/2 -> clasificamos en la población 2 si la Pu(x) > Pu((µ1 + µ2)/2)
+
+Las probabilidades de error son iguales, el error de clasificaci´on s´olo depende de la distancia de Mahalanobis entre las medias.
+
+clasificamos en poblacion 2 si D1^2 > D2^2 <- se cumple tmb para las dists a posteriori (siendo las a priori iguales π1 = π2 sin que intervengan costos)
+
+Se puede generalizar para varias poblaciones desconocidas, se estima la media y la ma triz de varianza-covarianza
+->Clasificaremos entonces un nuevo individuo x0 en aquella clase g que haga mínima la distancia de Mahalanobis entre x0 y la media xg del grupo g
+
+
+la cantidad de ejes discriminantes necesarios es -> r = min(p, G − 1)
+
+(QDA) -> si suponemos que no tienen la misma matriz de covarianzas, se obtiene una función cuadrática operando desde el clasificador de bayes
+
+1 La discriminaci´on log´ıstica es m´as robusta que LDA a la no normalidad. Si hay normalidad, LDA en general es mejor.
+2 La estimaci´on de los param´etros en la discriminaci´on log´ıstica se hace por logverosimilitud.
+
+------------------------------------------PCA------------------------------------------------------------------
+
+X matriz centrada (media de col=0)
+
+Queremos encontrar un subespacio de dimensi´on menor que p que represente de manera adecuada los datos. M´as precisamente queremos encontrar un subespacio de dimensi´on menor que p tal que cuando proyectamos los individuos sobre ´el, la estructura se distorciona lo menos posible. (reducir el numero de variables sin perder tanta informacion)
+
+(minimizar el r^2) -> equivale a maximizar sum(z^2) que es la VARIANZA MUESTRAL DE LOS DATOS PROYECTADOS (porque los datos proyectados tmb son centrados si se hace la cuenta)
+
+-Cada componente principal es una combinaci´on lineal de las variables originales
+-Las componentes principales son no correlacionadas dos a dos, y de esta manera eliminamos informaci´on repetida (X correladas, Z NO correladas)
+
+hallar componentes principales:
+λ1(parametro de lagrange para solucionar max Var(z1) sujeto a ||a1||=1) es valor propio de la matriz sigma -> var(z1) = λ1 (tomo mayor valor propio para mayor varianza) -> tomo a1 vector propio asociado al valor propio λ1 => z1 = X*a1
+lo mimso para z2, elijo el 2do mayor valor propio
+(como los z son incorrelados, Sigma_Z es diagonal con λi en la diagonal)
+Sigma_Z = Var(Z) - A'Var(X)A -> Sigma = A.Sigma_Z.A'
+
+porcentaje de variabilidad => λi/Sum(λ1) => nos quedamos con las m primeras variables que recogen un parcentaje alto de la variabilidad total (fijada por el usuario)
+
+-finalmente proyectamos la nube de puntos sobre el subespacio formado por las variables elegidas
+
+Si Σ tiene un valor propio con multiplicidad mayor que 1 se toma vectores propios ortgonales en el subespacio propio correspondiente.

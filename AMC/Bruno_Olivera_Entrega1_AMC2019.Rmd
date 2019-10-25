@@ -69,7 +69,8 @@ vif_calc<-function(Xmat){
 ```{r 1-c, warning=FALSE}
 # estimamos los parámetros Beta y calculamos sus varianzas
 # para cada valor de tau
-results <- matrix(ncol=8, nrow=5)
+coefs <- matrix(ncol=4, nrow=5)
+coefs_vars <- matrix(ncol=4, nrow=5)
 VIFs <- NULL
 B_estimates <- NULL
 tau <- c(0, .01, .1, 1, 10)
@@ -122,30 +123,39 @@ for(i in 1:5){
     assertthat::are_equal(var_B3_1,var_B3_2)
   }
   
-  newRow.data <- c(B_estimates[1],
-                   B_estimates[2],
-                   B_estimates[3],
-                   B_estimates[4],
-                   var_B0_1,
-                   var_B1_1,
-                   var_B2_1,
-                   var_B3_1)
+  coefs.newRow.data <- c(B_estimates[1],
+                         B_estimates[2],
+                         B_estimates[3],
+                         B_estimates[4])
   
-  results[i,] = newRow.data
+  coefs_vars.newRow.data <- c(var_B0_1,
+                              var_B1_1,
+                              var_B2_1,
+                              var_B3_1)
+  
+  coefs[i,] = coefs.newRow.data
+  coefs_vars[i,] = coefs_vars.newRow.data
   
   # calculamos el VIF y lo guardamos para la parte d)
   VIFs <- rbind(VIFs,vif_calc(data.frame(Xdata_new)))
 }
 ```
 ```{r 1-c-names, echo=FALSE}
-row.names(results) <- c('  0','.01',' .1','  1',' 10')
-colnames(results)  <- c('Beta_0','Beta_1','Beta_2','Beta_3',
-                        'Var_Beta_0','Var_Beta_1','Var_Beta_2','Var_Beta_3')
+row.names(coefs)      <- c('  0','.01',' .1','  1',' 10')
+row.names(coefs_vars) <- c('  0','.01',' .1','  1',' 10')
+colnames(coefs)       <- c('Beta_0','Beta_1','Beta_2','Beta_3')
+colnames(coefs_vars)  <- c('Var_Beta_0','Var_Beta_1','Var_Beta_2','Var_Beta_3')
 ```
 ```{r 1-c-results}
-# resultados
-results
+# coeficientes
+coefs
+
+# varianzas
+coefs_vars
 ```
+Podemos ver que para $\tau = 0$ el sistema no se puede resolver porque la matriz $(X'X)$ no es invertible. Con la función $lm()$ se puede estimar sacando la variable $x_2$, por eso se ve un $NA$ para el $\beta_2$. 
+Además, $\beta_2$ y su varianza parecen decrecer con el aumento de $\tau$.
+
 d)
 ```{r 1-d-names, echo=FALSE}
 row.names(VIFs) <- c('  0','.01',' .1','  1',' 10')
@@ -154,5 +164,28 @@ row.names(VIFs) <- c('  0','.01',' .1','  1',' 10')
 # calculamos los VIFs
 VIFs
 ```
+\newpage
 
 ## Ejercicio 2
+
+# Predictores Cualitativos
+
+Cuando tenemos variables cualitativas con las que queremos trabajar, como por ejemplo el género de una persona, debemos recurrir a la utilización de variables 'dummy'.
+Una variable dummy codifica de forma numérica una variable cualitativa. 
+
+En el caso del género que tiene dos posibles valores: 'Masculino' y 'Femenino', una posible variable dummy a usar sería la que codifica el género 'Femenino' como 1 y el 'Masculino' como 0.
+
+Otra posible codificación sería 1 para 'Femenino' y -1 para 'Masculino'.
+
+Si bien usamos codificaciones distintas, las predicciones de ambos modelos son las mismas, lo que cambia con cada codificación es la interpretación de los coeficientes. 
+En el primer ejemplo, $\beta_0$ sería el promedio de la variable que estamos trantando de de predecir(balance en tarjetas de crédito en el ejemplo del libro) para los hombres, y $\beta_1$ representa el promedio de diferencias entre el balance de mujeres y hombres.
+En el segundo ejemplo, $\beta_0$ representa el premedio general de balances independientemente del género, mientras que $\beta_1$ representa la cantidad que las mujeres están por encima del promedio y que los hombres están por debajo del promedio.
+
+En el caso de que la variable cualitativa tenga más de dos posibles valores, una sola variable dummy no será suficiente, vamos a necesitar más. En general, siempre va a haber una variable menos que la cantidad de posibles valores de la variable cualitativa.
+
+Para determinar si existe una relación lineal entre la variable cualitativa y la variable a predecir, se recomienda usar un F-test en vez de ver los p-valores de los coefficientes, ya que el F-test no depende de la codificación elegida, mientras que los coeficients y sus p-valores sí.
+
+En $R$, al usar la función lm con variables cualitativas, se generan variables dummy de forma automática. Se puede usar la función $contrasts()$ para consultar la codificación elegida para las variables dummy.
+
+
+

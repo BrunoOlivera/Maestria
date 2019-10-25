@@ -1,0 +1,465 @@
+---
+title: "Entrega 2"
+author: "Bruno Olivera & Leandro Burastero"
+date: "13/10/2019"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+# Parte 1 - Laboratorio con variables simuladas
+
+Sean $X_1$ y $X_2$ dos variables uniformes en [-4, 5] e $Y$ una variable que se quiere predecir a partir de ellas.
+
+## 1.a) Simulación de datos
+
+Simular una relación entre $Y$ y ($X_1$, $X_2$).
+
+```{r, warning=FALSE}
+set.seed(2019)
+
+n=100
+a=-2
+b=2
+c=3
+x1=runif(n,-4,5)
+x2=runif(n,-4,5)
+y=exp(a*x1+b*x2+c + rnorm(n))
+y=y/(1+y)
+y=rbinom(n,1,y)
+```
+
+## 1.b) Graficar relaciones entre variables
+
+Representar graficamente la nube de puntos formada por las variables explicativas, representando los puntos con colores distintos según la modalidad de $Y$. Representar $Y$ en función de $X_1$ e $Y$ en función de $X_2$.
+
+
+```{r, fig.width = 6, fig.height = 6, warning=FALSE}
+group <- NA
+group[y == 0] = 1
+group[y == 1] = 2
+
+plot(x1,x2, col = c("red", "blue")[group], pch=20)
+
+plot(x1,y)
+
+plot(x2,y)
+```
+
+## 1.c) Regresión logística y resultados
+
+Estimar el modelo de regresiónn logística a través de la función glm.
+
+Comentar el resultado obtenido. ¿Cual es el aporte de cada variable explicativa?
+
+```{r, warning=FALSE}
+glm.com=glm(y~x1+x2,family=binomial)
+summary(glm.com)
+
+glm.res1=glm(y~x1,family=binomial)
+summary(glm.res1)
+
+glm.res2=glm(y~x2,family=binomial)
+summary(glm.res2)
+
+anova(glm.com,test='Chisq')
+anova(glm.res1,test='Chisq')
+anova(glm.res2,test='Chisq')
+
+anova(glm.res1, glm.res2, glm.com, test='Chisq')
+AIC(glm.res1)-AIC(glm.res2)
+AIC(glm.res1)-AIC(glm.com)
+
+OR_Beta1 = exp(coef(glm.com)[2])
+OR_Beta1
+
+OR_Beta2 = exp(coef(glm.com)[3])
+OR_Beta2
+
+```
+
+
+### Conclusión punto 1.c)
+
+En base a los test realizados, el modelo completo ($y$ ~ $X_1+X_2$), predice mejor que los modelos reducidos, donde el test ANOVA arroja un p-valor muy inferior al 5%, rechazando así la hipótesis nula de que las verosimilitudes son iguales (ver análisis tabla de análisis: anova(glm.res1, glm.res2, glm.com, test='Chisq')). Además, el coeficiente AIC del modelo completo es muy inferior al obtenido en el modelo reducido (AIC($y$ ~ $X_1$)-AIC($y$ ~ $X_1+X_2$)=54) con una sola variable ($y$ ~ $X_1$).
+
+Dados los $X_1$ y $X_2$ simulados, es posible concluir que ambas variables son relevantes a la variable explicada $Y$. La variable $X_1$ influye "negativamente", o incrementa la probabilidad de que la variable $Y$ sea igual a 0 en la medida que sea mayor ($\beta_1$ es -2.3476). Por otra parte, la variable $X_2$ influye "positivamente", o incrementa la probabilidad de que la variable $Y$ sea igual a 1 en la medida que sea mayor ($\beta_1$ es 2,2012).
+
+Asimismo, la variable $X_2$ es más influyente que $X_1$ en el resultado de $Y$. Esto se logra apreciar en el resultado del OR, ya que el mismo en $X_1$ es de 0.0956, y el asociado a $X_2$ es de 9.04.
+
+## 1.d) Predicción y matriz de confusión
+
+Realizar las predicciones de $Y$ para la muestra de entrenamiento, y dar los resultados con una matriz de confusión.
+
+```{r, warning=FALSE}
+yhat=predict(glm.com,data.frame(x1=x1,x2=x2),type='response')
+
+yhat=ifelse(yhat<=0.5,0,1)
+
+table(yhat,y)
+```
+
+
+## 1.e) Evaluación de modelo
+
+Simular una nueva muestra de tamaño 100. Calcular la sensibilidad y la especificidad para seq(0,1,0.01). Trazar la curva ROC (como función escalera).
+
+```{r, fig.width = 10, fig.height = 10, warning=FALSE}
+
+#Simulación de muestra de validación
+
+x1_new=runif(n,-4,5)
+x2_new=runif(n,-4,5)
+y_new=exp(a*x1_new+b*x2_new+c + rnorm(n))
+y_new=y_new/(1+y_new)
+y_new=rbinom(n,1,y_new)
+
+#Cálculo de sensibilidad y especificidad
+
+sens_array = c()
+speci_array = c()
+yhat_simprimero=predict(glm.com,data.frame(x1=x1,x2=x2),type='response')
+
+for (i in c(seq(0,1,0.01)))
+  {
+  yhat_sim=ifelse(yhat_simprimero<=i,0,1)
+  confmatrix_sim = table(factor(yhat_sim,c(0,1)),y)
+  sens_sim = confmatrix_sim[2,2]/(confmatrix_sim[2,2]+confmatrix_sim[1,2])
+  speci_sim = confmatrix_sim[1,1]/(confmatrix_sim[1,1]+confmatrix_sim[2,1])
+  sens_array = cbind(sens_array,sens_sim[1])
+  speci_array = cbind(speci_array,speci_sim[1])
+}
+
+sens_array #Sensibilidad en el rango solicitado
+speci_array #Especificidad en el rango solicitado
+
+#Curva ROC
+
+library(ROCR)
+
+yhat=predict(glm.com,data.frame(x1=x1,x2=x2),type='response')
+
+rocplot =function (pred , truth , C,...){
+  predob = prediction (pred , truth)
+  perf = performance (predob , "tpr", "fpr")
+  return(perf)}
+
+AUC_ROC =function (pred , truth , ...){
+  predob = prediction (pred , truth)
+  Area = performance (predob , "auc")
+  return(Area@y.values)}
+ 
+plot(rocplot(predict(glm.com,data.frame(x1=x1,x2=x2),type='response'),y),col="#00AFBB",main="Curva ROC")
+par(new=TRUE)
+plot(rocplot(predict(glm.com,data.frame(x1=x1_new,x2=x2_new),type='response'),y_new),col="#6BB82E",main="Curva ROC")
+par(new=TRUE)
+lines(c(seq(0,1,0.01)), c(seq(0,1,0.01)), col = "#FC4E07", type="l", lty=2)
+
+AUC_ROC_tra = AUC_ROC(predict(glm.com,data.frame(x1=x1,x2=x2),type='response'),y) 
+AUC_ROC_tes = AUC_ROC(predict(glm.com,data.frame(x1=x1_new,x2=x2_new),type='response'),y_new)
+
+legend(0.5, 0.4, legend=c(paste("y~x1+x2 - Train - AUC = ", AUC_ROC_tra) , paste("y~x1+x2 - Test - AUC = ", AUC_ROC_tes)),
+       col=c("#00AFBB", "#6BB82E"), lty=c(1,1), cex=0.9,
+       title="Comparación ROC Modelos", text.font=4, bg='lightblue')
+
+```
+
+## 1.f) Comparar con modelo con una sola variable explicativa
+
+Hacer lo mismo usando una sola variable explicativa en el modelo logístico. Superponer ambas curvas ROC y elegir el mejor modelo.
+
+```{r, fig.width = 10, fig.height = 10, warning=FALSE}
+par(new=FALSE)
+plot(rocplot(predict(glm.com,data.frame(x1=x1_new,x2=x2_new),type='response'),y_new),col="#6BB82E",main="Curva ROC")
+par(new=TRUE)
+plot(rocplot(predict(glm.res1,data.frame(x1=x1_new),type='response'),y_new),col="#B30417")
+par(new=TRUE)
+plot(rocplot(predict(glm.res2,data.frame(x2=x2_new),type='response'),y_new),col="#325b82")
+par(new=TRUE)
+lines(c(seq(0,1,0.01)), c(seq(0,1,0.01)), col = "#FC4E07", type="l", lty=2)
+
+AUC_ROC_res1 = AUC_ROC(predict(glm.res1,data.frame(x1=x1_new),type='response'),y_new) 
+AUC_ROC_res2 = AUC_ROC(predict(glm.res2,data.frame(x2=x2_new),type='response'),y_new)
+
+
+legend(0.5, 0.4, legend=c(paste("y~x1+x2 - Test - AUC = ", AUC_ROC_tes), paste("y~x1 - Test - AUC = ", AUC_ROC_res1), paste("y~x2 - Test - AUC = ", AUC_ROC_res2)),
+       col=c("#6BB82E", "#B30417", "#325b82"), lty=c(1,1,1), cex=0.9,
+       title="Comparación ROC Modelos", text.font=4, bg='lightblue')
+```
+
+# Parte 2 - Modelo de predicción
+
+En la página del UCI https://archive.ics.uci.edu/ml/datasets.php bajar los datos de Cancer (Breast Cancer Wisconsin). El objetivo consiste en predecir si el tumor es benigno o maligno a partir de varias variables explicativas. Dividir aleatoriamente el conjunto de datos en train/test.
+
+Estructura de la base utilizada:
+
+  Attribute                     Domain
+-- -----------------------------------------
+id. Sample code number            id number
+x1. Clump Thickness               1 - 10
+x2. Uniformity of Cell Size       1 - 10
+x3. Uniformity of Cell Shape      1 - 10
+x4. Marginal Adhesion             1 - 10
+x5. Single Epithelial Cell Size   1 - 10
+x6. Bare Nuclei                   1 - 10
+x7. Bland Chromatin               1 - 10
+x8. Normal Nucleoli               1 - 10
+x9. Mitoses                       1 - 10
+ y. Class:                        (2 for benign, 4 for malignant)
+
+```{r, warning=FALSE}
+library(readr)
+
+db <- read_csv("breast-cancer-wisconsin.data",col_names = FALSE,
+               col_types = cols(X7 = col_double()))
+
+db[db == '?'] = as.numeric(NA)
+db <- na.omit(db)
+
+colnames(db) = c('Id','x1','x2','x3','x4','x5','x6','x7','x8','x9','y')
+
+#Se modifica para que Y='Maligno' sea igual a 1, mientras que Y='Benigno' sea igual a 0.
+db$y = ifelse(db$y==4,1,0) 
+
+ind = sample(2,nrow(db),replace=TRUE,prob = c(0.8,0.2))
+
+train = db[ind==1,]
+
+test = db[ind==2,]
+
+X_train = train[2:10]
+
+y_train = train$y
+
+X_test = test[2:10]
+
+y_test = test$y
+```
+
+## 2.a) Estimar modelo
+
+Estimar el modelo completo. Analizar el aporte de cada variable y dar el valor del AIC.
+
+```{r, warning=FALSE}
+glm.modelo=glm(y_train~.,family=binomial, data=X_train)
+
+summary(glm.modelo)
+anova(glm.modelo,test='Chisq')
+
+AIC_modelo = glm.modelo$aic
+AIC_modelo
+
+```
+
+### Conclusión 2.a)
+
+Las variables explicativas mantienen siempre un $\beta$ positivo (salvo el intercept o $\beta_0$ que es negativo), lo cual implica que, en la medida que aumenta el valor de cada variable, mayor es la probabilidad de que el tumor sea maligno.
+
+## 2.b) Analiza significancia del modelo
+
+Averiguar si el modelo es significativo al 5 %.
+
+```{r, warning=FALSE}
+chi2=glm.modelo$null.deviance - glm.modelo$deviance
+
+ddl=glm.modelo$df.null-glm.modelo$df.residual
+
+pvalor=pchisq(chi2,ddl,lower.tail=F)
+pvalor
+```
+
+### Conclusión 2.b)
+
+El modelo se ajusta bien a los datos, siendo significativo al 5%, ya que el p-valor obtenido es muy inferior a 0.05.
+
+## 2.c) Modelo reducido
+
+Estimar un modelo donde estén presentes las variables significativas al 5% del apartado anterior.
+
+```{r, warning=FALSE}
+res <- NULL
+for(var in row.names(summary(glm.modelo)$coefficients)) {
+  if(var != '(Intercept)'){
+    if(summary(glm.modelo)$coefficients[var,4] < .05){
+      res <- rbind(res,var)
+    }
+  }
+}
+
+formula <- as.formula(paste("y_train~", paste(res, collapse="+")))
+formula
+reduced.model <- glm(formula,family=binomial, data=X_train, maxit=100)
+summary(reduced.model)
+
+#Se verificó el cálculo de la desvianza
+dev = -2*logLik(reduced.model)
+dev
+deviance(reduced.model)
+
+anova(reduced.model,test='Chisq')
+
+AIC_modelores = reduced.model$aic
+AIC_modelores
+```
+
+## 2.d) Estimar Modelo Forward
+
+Estimar un modelo simplificado con el método forward.
+
+```{r, warning=FALSE}
+library("MASS")
+nothing = glm(y_train ~ 1,family=binomial, data=X_train)
+
+step.fwd = stepAIC(nothing,scope=list(lower=formula(nothing),upper=formula(glm.modelo)), direction="forward")
+anova(step.fwd,test='Chisq')
+AIC_modelofwd = step.fwd$aic
+AIC_modelofwd
+```
+
+## 2.e) Estimar Modelo Stepwise
+
+Estimar un modelo simplificado con el método stepwise.
+
+```{r, warning=FALSE}
+step.bot = stepAIC(glm.modelo,scope=list(lower=formula(nothing),upper=formula(glm.modelo)), direction="both")
+
+step.bot2 = stepAIC(nothing,scope=list(lower=formula(nothing),upper=formula(glm.modelo)), direction="both")
+
+anova(step.bot,test='Chisq')
+AIC_modelobot = step.bot$aic
+AIC_modelobot
+```
+
+### Conclusión 2.e)
+
+Se probó realizar el modelo stepwise, comenzando desde el modelo completo y desde el modelo sin variables explicativas (únicamente con $\beta_0$). Según los resultados obtenidos, el modelo que comienza con todas las variables, obtuvo mejor performance que el otro (con un AIC inferior).
+
+Cabe mencionar que, se ejecutó el método stepwise con dos orígenes ("desde el final" o "desde el principio"), ya que esta metodología es greedy y puede sacar o introducir variables (tomando la mejor decisión local), por lo que modelo puede ser distinto según el punto de partida. En este sentido, seleccionamos el que obtuvo mejor resultado para el caso planteado.
+
+## 2.f) Mejor modelo según AIC
+
+¿Cuál es el mejor modelo con el AIC?
+
+```{r, fig.width = 8, fig.height = 8, warning=FALSE}
+formula(glm.modelo)
+AIC_modelo
+formula(reduced.model)
+AIC_modelores
+formula(step.fwd)
+AIC_modelofwd
+formula(step.bot)
+AIC_modelobot
+
+G_AIC = barplot(c(AIC_modelo,AIC_modelores,AIC_modelofwd,AIC_modelobot),
+        main = "Comparación AIC modelos",
+        xlab = "AIC",
+        ylab = "Modelo",
+        names.arg = c("M. Completo", "M. Reducido", "M. Forward", "M. Stepwise"),
+        col = "darkred",
+        horiz = FALSE,
+        ylim = c(0,round(max(AIC_modelo,AIC_modelores,AIC_modelofwd,AIC_modelobot))+10))
+
+text(G_AIC, c(AIC_modelo+5,AIC_modelores+5,AIC_modelofwd+5,AIC_modelobot+5), labels=c(AIC_modelo,AIC_modelores,AIC_modelofwd,AIC_modelobot), xpd=TRUE)
+
+AIC_modelores - AIC_modelobot
+AIC_modelo - AIC_modelobot
+AIC_modelofwd - AIC_modelobot
+
+```
+
+### Conclusión 2.f)
+
+En base al criterio de AIC, el mejor modelo fue el estimado con el método de stepwise (“modelobot”). Adicionalmente, es posible concluir que el modelo stepwise es “similar” al modelo forward (diferencias de AIC menor a 2), es “mejor” que el modelo completo (diferencia entre 4 y 7) y “mucho mejor” que el modelo reducido (diferencia mayor a 10).
+
+## 2.g) Comparación sobre conjunto de Test
+
+¿Cuál es el mejor modelo sobre la muestra de Test?
+
+```{r, warning=FALSE}
+yhat=predict(glm.modelo,X_test,type='response')
+class_hat = ifelse(yhat<=0.5,0,1)
+t=table(class_hat,y_test)
+t
+mean(class_hat==y_test) #accurancy
+sens_modelo = t[2,2]/(t[2,2]+t[1,2]) #sensibilidad
+sens_modelo
+
+yhat=predict(reduced.model,X_test,type='response')
+class_hat = ifelse(yhat<=0.5,0,1)
+t=table(class_hat,y_test)
+t
+mean(class_hat==y_test) #accurancy
+sens_modelores = t[2,2]/(t[2,2]+t[1,2]) #sensibilidad
+sens_modelores
+
+yhat=predict(step.fwd,X_test,type='response')
+class_hat = ifelse(yhat<=0.5,0,1)
+t=table(class_hat,y_test)
+t
+mean(class_hat==y_test) #accurancy
+sens_modelofwd = t[2,2]/(t[2,2]+t[1,2]) #sensibilidad
+sens_modelofwd
+
+yhat=predict(step.bot,X_test,type='response')
+class_hat = ifelse(yhat<=0.5,0,1)
+t=table(class_hat,y_test)
+t
+mean(class_hat==y_test) #accurancy
+sens_modelobot = t[2,2]/(t[2,2]+t[1,2]) #sensibilidad
+sens_modelobot
+```
+
+### Conclusión 2.g)
+
+Para los datos disponibles y utilizando el punto de corte de las clase con probabilidad igual 0.5, los resultados son iguales en el conjunto de Test (donde solo existen 130 casos), tanto en el accurancy como en la sensibilidad. No obstante, esto se produce por la semilla utilizada para la separación del conjunto Train y Test. Se probó que cambiando modificando la misma, el resultado si variaba para los diferentes modelos, siendo el que obtenía menor AIC (stepwise generalmente) arrojaba mejores resultados sobre el conjunto de Test.
+
+
+## 2.h) Comparación curva ROC.
+
+Trazar la curva ROC para cada uno de los modelos. ¿Cuál es el mejor?
+
+```{r, fig.width = 10, fig.height = 10, warning=FALSE}
+library(ROCR)
+
+yhat_modelo=predict(glm.modelo,X_test,type='response')
+yhat_reducido=predict(reduced.model,X_test,type='response')
+yhat_forw=predict(step.fwd,X_test,type='response')
+yhat_both=predict(step.bot,X_test,type='response')
+
+rocplot =function (pred , truth , C,...){
+  predob = prediction (pred , truth)
+  perf = performance (predob , "tpr", "fpr")
+  return(perf)}
+
+AUC_ROC =function (pred , truth , ...){
+  predob = prediction (pred , truth)
+  Area = performance (predob , "auc")
+  return(Area@y.values)}
+
+plot(rocplot(yhat_modelo,y_test),col="#00AFBB",main="Curva ROC")
+par(new=TRUE)
+plot(rocplot(yhat_reducido,y_test),col="#6BB82E",main="Curva ROC")
+par(new=TRUE)
+plot(rocplot(yhat_forw,y_test),col="#B30417",main="Curva ROC")
+par(new=TRUE)
+plot(rocplot(yhat_both,y_test),col="#325b82",main="Curva ROC")
+par(new=TRUE)
+lines(c(seq(0,1,0.01)), c(seq(0,1,0.01)), col = "#FC4E07", type="l", lty=2)
+
+AUC_ROC_mod = AUC_ROC(yhat_modelo,y_test) 
+AUC_ROC_res = AUC_ROC(yhat_reducido,y_test)
+AUC_ROC_fwd = AUC_ROC(yhat_forw,y_test)
+AUC_ROC_bot = AUC_ROC(yhat_both,y_test)
+
+legend(0.5, 0.4, legend=c(paste("M.Completo - AUC = ", AUC_ROC_mod) , paste("M.Reducido - AUC = ", AUC_ROC_res),
+                          paste("M.Forward - AUC = ", AUC_ROC_fwd),paste("M.Stepwise - AUC = ", AUC_ROC_bot)),
+       col=c("#00AFBB", "#6BB82E", "#B30417", "#325b82"), lty=c(1,1), cex=0.9,
+       title="Comparación ROC Modelos", text.font=4, bg='lightblue')
+
+```
+
+### Conclusión 2.h)
+
+En este caso, el Modelo Completo es el que mantiene un área bajo la curva ROC mayor (realizando las pruebas sobre el conjunto de Test), por lo tanto es el que refleja mayor poder de clasificación en dicho conjunto. No osbtante, es preciso destacar que la diferencia con el Stepwise es muy reducida.
+
+Para tener una mejor conclusión a partir de esta métrica, sería deseable contar con un conjunto de validación mayor.
