@@ -1,0 +1,330 @@
+(lenguaje)
+Sistema de signos que utiliza una comunidad para comunicarse oralmente o por escrito.
+Conjunto finito o infinito de oraciones...
+(PLN)
+El Procesamiento de Lenguaje Natural (PLN) es una subdisciplina de la Inteligencia Artificial que intenta resolver con computadoras tareas vinculadas al lenguaje humano, permitiendo la comunicación entre el humano y la computadora a través del lenguaje natural o resolviendo diferentes tareas que implican algún tipo de procesamiento de texto o habla.
+El PLN puede verse como la rama ingenieril de la LC
+-> comprension y generacion
+
+• Fonética y Fonología: estudio de los sonidos lingüísticos (usados para la comunicación humana)
+• Morfología: estudio de la estructura interna de las palabras
+• Sintaxis: estudio de la estructuración (orden y agrupamiento) de las palabras en unidades mayores.
+• Semántica: estudio del significado
+• Pragmática: estudio de cómo el lenguaje se utiliza para cumplir objetivos
+• Discurso: estudio de las unidades mayores a la oración
+
+tareas:
+-------
+traduccion automatica
+resumen automatico
+extraccion de informacion
+categorizacion de documentos
+respuestas a preguntas
+analisis del discurso
+
+lenguajes:
+	-formales: Definidos por reglas pre-establecidas
+	-naturales: ■ Evolucionan con el tiempo
+				■ Utilizados para la comunicación humana
+				■ Las reglas “se desarrollan” después que sucede el hecho
+
+Ambigüedad:
+===========
+■ Homonimia: dos palabras con misma forma que tienen distinto significado (Homografía, Homofonía)
+■ Polisemia: una palabra con múltiples significados pero que de alguna manera “tienen que ver”
+■ Ambigüedad fonética: calambures
+■ Ambigüedad a nivel morfológico(tiempo del verbo)
+■ Ambigüedad sintáctica: (agrupacion)
+■ Ambigüedad semántica: (cuantificadores, perra)
+■ Ambigüedad a nivel pragmático: (intension,)
+■ Ambigüedad a nivel de discurso: (corref)
+
+Modelos:
+• Máquinas de estado finito: autómatas finitos, transductores, autómatas con peso…
+• Sistemas de reglas: gramáticas regulares, expresiones regulares, gramáticas libres de contexto, gramáticas con atributos…
+• Lógica: cálculo de predicados.
+• Teoría Probabilística.
+• Modelos basados en Redes Neuronales
+• Representation Learning
+
+========================================================================================================================================
+
+(Gramática)En un sentido restringido, la gramática estudia las unidades significativas del lenguaje y su combinatoria.
+	-> morfologia {morfema,palabra}
+	-> sintaxis {palabra,sintagma,oracion}
+
+(Oración)La oración es una unidad de predicación en donde se establece una relación entre dos constituyentes, el sujeto y el predicado.
+(oracion y no enunciado)->Unidades predicativas que no son comuncativamente completas porque no son independientes
+
+(Enunciado)En un texto, la unidad es el enunciado, que va desde la mayúscula hasta el punto.
+(enunciado y no oracion)->Son comunicativamente completas, pero no atribuyen al sujeto el contenido del predicado: no son oraciones. 
+
+La oración es un objeto teórico, gramatical.
+El enunciado es un objeto concreto, existe dentro de un texto.
+
+categorias gramaticales:
+-Categorías léxicas:
+	– nombre/sustantivo (casa, casas, felicidad)
+	– verbo (cantar, cantando, cantáramos, sabe, dé)
+	– adjetivo (alto, alta, lindos, inteligente, solo, media)
+	– adverbio (medio, simplemente, solo, ayer)
+	– determinante (incluye artículo) (el, una, unos, esos, nuestro, algún)
+	– preposición (a, de, por, contra, ...)
+	– pronombre (yo, él, mí, se, aquello, que, ese ...)
+	– conjunción (y, o, si, que, ...)
+-Categorías sintagmáticas
+	(Sintagma)
+	• Los sintagmas (grupos / frases) son grupos de palabras en donde podemos identificar un núcleo.
+	• Tienen estructura interna.
+	• Cumplen diversas funciones dentro de la oración
+
+(Funciones sintácticas) Las funciones sintácticas expresan la relación que el sintagma mantiene con los otros componentes de la oración: 
+	● Sujeto: Un árbol frondoso nos protege del sol.
+	● Objeto directo: Vimos un árbol frondoso.
+	● Objeto Indirecto: Le cortaron una rama a un árbol frondoso.
+	● Complemento de Régimen: Soñé con un árbol frondoso.
+	● Adjunto: Nos sentamos bajo un árbol frondoso. 
+
+(Roles semánticos) Establecen una relación entre sintaxis y semántica
+
+POS-taggers (POS: Part Of Speech): Tokenizan el texto y realizan un análisis morfosintáctico de cada token (lema y pos-tag).
+Parsers:
+	○ realizan un análisis sintáctico de cada oración, basados en algún formalismo gramatical:
+		■ GLC (constituyentes): muy utilizadas durante muchos años, GLC probabilistas.
+		■ Dependencias: muy utilizadas actualmente.
+		■ HPSG (gramáticas de rasgos) y Categoriales: pocas herramientas.
+
+========================================================================================================================================
+
+Extracción de información
+-------------------------
+● NER y NEC
+	● Reglas
+	● ML basado en atributos: MEMM (Maximum Entropy Markov Model), CRF (Conditional Random Fields)
+		○ palabra, lema, POS-tag (de palabra actual y ventana)
+		○ chunk (grupo) (de palabra actual y ventana)
+		○ word shape (Xxxx) (de palabra actual y ventana)
+		○ short word shape (Xx) (de palabra actual y ventana)
+		○ pertenencia a un Gazeteer o diccionario de nombres
+		○ mayúsculas
+		○ guión
+		○ word embedding (de palabra actual y ventana)
+	● Redes neuronales: Bi-LSTM (+CRF)
+	-Problemas asociados a NER:
+		● Correferencias
+		● Entity linking
+● Extracción de relaciones
+	● Las relaciones extraídas pueden ser almacenadas como triplas RDF(Resource Description Framework): tupla entity-relation-entity(subject-predicate-object).
+● Extracción de eventos
+	○ Identificar eventos y sus argumentos.
+	○ Ubicarlos temporalmente (identificar expresiones temporales).
+	○ Saber si ocurrieron o no (factualidad).
+● Template filling
+	○ Extraer información de interés en dominios particulares.
+	○ Completar templates o slots predefinidos.
+
+Análisis de sentimiento
+-----------------------
+Diferentes tareas:
+● Clasificación de textos (tweets, opiniones sobre películas, hoteles, etc.) según su polaridad (positivos o negativos).
+● Extraer opiniones a partir de textos (por ejemplo, prensa).
+
+-Primer enfoque: reglas y patrones manuales (Es muy difícil abarcar todos los casos escribiendo reglas manuales.)
+-Segundo enfoque: aprendizaje automático con atributos(corpus etiquetados a mano)
+	Algunos atributos posibles para análisis de sentimiento:
+		● word embeddings
+		● palabras (bag of words)
+		● lemas
+		● categorías gramaticales
+		● cantidad de palabras positivas/negativas
+		● presencia de negación
+		● información sintáctica
+-Tercer enfoque: aprendizaje profundo
+	Representaciones vectoriales de palabras (word embeddings):
+	● son atributos “autocalculados”
+	● a partir de gran corpus (millones -o billones- de palabras)
+	● corpus no anotado (aprendizaje no supervisado)
+	Redes neuronales:
+	● diferentes arquitecturas
+	● redes profundas
+
+Evaluación
+----------
+-Precision: P = VP / (VP + FP)
+-Recall: R = VP / (VP + FN)
+-Medida-F1: F1 = 2.P.R / (P + R)
+	-Macro F1 (promedio de F1 de cada clase)
+	-Weighted F1  (promedio de F1 ponderado por tamaño de cada clase)
+-Accuracy (correctos de todas las clases / total)(No es una buena medida para datos desbalanceados)
+
+========================================================================================================================================
+
+● La palabra es un conjunto o secuencia de sonidos articulados que se pueden representar gráficamente con letras, y por lo general, asocian un significado
+	- Palabras (word types): unidades distintas en un corpus o en un vocabulario
+	- Tokens: son las distintas instancias de las palabras en el corpus
+
+(Lenguajes Regulares)Lenguaje para identificar strings de caracteres (Patrón (qué se quiere buscar), Corpus (dónde se quiere buscar))
+
+(Tokenización)Identificar las distintas unidades (tokens) en un texto
+	-¿Cómo evaluamos un tokenizador? -> Word Error Rate (Distancia Mínima de Edición)
+
+(Normalización)llevar las palabras a un formato estándar
+	- Llevar los números a un formato único
+	- URLs y otras formas con estructura
+	- Detección de entidades con nombre
+	- Llevar todo a minúsculas/mayúsculas
+
+(Morfología)Rama de una disciplina que se ocupa del estudio y la descripción de las formas externas de un objeto. Parte de la lingüística que se ocupa de la estructura o forma de las palabras.
+	- Análisis morfológico: Reconocer una palabra y construir una representación estructurada
+	– Morfema: fragmento mínimo capaz de expresar significado. Es la mínima unidad con sentido. (Los morfemas se añaden a la raíz para formar nuevas palabras.)
+	– Raíz: es la parte de la palabra que no varía y que indica su significado principal. Es el “morfema “principal” o lexema
+	– Afijos: dan significado adicional(prefijos,sufijos,circunfijos,infijos)
+	- Lematización: llevar palabras con la misma raíz a una forma canónica. Identificar su estructura interna
+	- Lema: palabra “representativa”
+	- Stemming: cortar las palabras. Mucho más simple, en los hechos ha funcionado
+	Morfología->Hay algunos problemas a resolver:
+		- Morfotáctica: los morfemas pueden combinarse de acuerdo a ciertas reglas
+		- Alteraciones ortográficas: los morfemas pueden cambiar según el contexto
+
+	Morfología Flexiva
+		● Mecanismo de producción de palabras dentro de una misma clase
+		● En español no se agrega significado extra
+		● Las flexiones aportan información relativa a: Género / Número Persona / Tiempo / Modo
+		(ej etiquetas Eagle)
+
+	Morfología Derivativa (o léxica)
+		● Combinar una raíz con un afijo, para generar una palabra de otra clase, o con otro significado
+		● Es un mecanismo productivo
+
+POS-tagger
+----------
+● Proceso que analiza el texto a nivel de palabra
+● Desambiguan según el contexto
+● Ofrecen información categorial y morfológica, dependiendo de los rasgos de cada categoría
+● Asignan a cada palabra su lema:
+	➢ verbos → infinitivo
+	➢ nombres → singular
+	➢ adjetivos y determinantes → masculino singular
+	➢ categorías invariantes → lema= palabra
+● Muchos taggers incorporan información extra: reconocimiento y clasificación de nombres propios (NER), reconocimiento de fechas, expresiones multipalabra.
+
+========================================================================================================================================
+
+Clasificación con aprendizaje automático
+-se suelen usar features BOW
+
+Bag of Words(BOW)
+-----------------
+● La cantidad de features es el tamaño del vocabulario.
+● Para cada feature pongo 0 o 1 dependiendo si esa palabra ocurre en el texto (one hot encoding).
+● Variantes:
+	○ cantidad de ocurrencias
+	○ lemas en vez de palabras
+	○ ignorar stop-words
+	○ n-gramas
+Problema: ¡se pierde información sobre el orden de las palabras!
+
+● Existen varios métodos para “aprender” la función:
+	○ Naïve Bayes, SVM, Regresión Logística, Árboles de Decisión...
+● Evaluar sobre datos no vistos
+
+========================================================================================================================================
+
+(Red Neuronal)Es un grafo compuesto por pequeñas unidades computacionales, cada una de las cuales recibe un vector como entrada y produce un solo valor de salida.
+(Red Neuronal)Es una función de RN → RK , construida como composición de funciones lineales y no lineales.
+
+Las funciones lineales son las que computan cada uno de los nodos o neuronas y las no lineales son las de activación
+La red termina computando una función global de las entradas en las salidas, se entrena para que aprenda el comportamiento de un sistema conocido
+
+● Hablamos de deep learning cuando existen varias capas ocultas.
+
+========================================================================================================================================
+
+(Canal Ruidoso)
+P(W) X P(Y | W) = P(W,Y)
+El objetivo es determinar W a partir de Y !!
+En corrección de errores, suponemos que hay un texto fuente correcto W que se distorsiona por un canal ruidoso. 
+
+(Modelo Probabilista de Lenguaje)
+Objetivo : Probabilidad de una oración o secuencia de palabras W
+Tarea relacionada : probabilidad de la palabra siguiente.
+	● Imposible basarse en frecuencias relativas para oraciones enteras. 
+Probabilidad condicional -> regla de la cadena
+
+Restringimos la historia: N-grama (hipótesis markoviana)
+Un modelo de ngramas (modelo de lenguaje) intenta predecir la próxima palabra de una oración a partir de las N-1 anteriores.
+
+Estimacion de la probabilidad: P(Wn|Wn-1) = c(Wn-1Wn)/c(Wn-1)
+
+Perplejidad (PP): de un modelo de lenguaje, en un conjunto de testeo CT=w1w2w3 ... wn, es la inversa de la probabilidad del conjunto de testeo, normalizada por la cantidad de elementos del conjunto
+
+PP(CT) = P(w1w2w3 ... wn)^-1/n
+
+Nos interesa maximizar la probabilidad de CT, equivale a minimizar la perplejidad.
+
+palabras que no existen en el vocabulario --> <UNK>
+
+Suavizado de Ngramas(ngramas que no ocurren): 
+-Idea simple: agregar 1 a todos los contadores. (P(Wi)=c(Wi)/T  ---> P(Wi)=c(Wi)+1/T+V)[caso unigrama T tokens V palabras]
+	(Esta técnica no funciona muy bien y no suele usarse en la práctica. “Mueve” demasiada masa de probabilidad hacia los Ngramas con probabilidad cero. Se puede utilizar una fracción δ en lugar de 1. Hay que calcularla)
+-Backoff: sólo se retrocede a un orden menor de N-gramas cuando no se tiene evidencia de un cierto orden mayor. P.ej: Para un trigrama que no ocurre en el texto se toma la probabilidad del bigrama sufijo.
+-Interpolación: se combinan las probabilidades de diferentes Ngramas para obtener la nueva probabilidad.
+
+(MODELOS DE LENGUAJE EN REDES FEED FORWARD)
+Ventajas:
+	● No necesitan técnicas de suavizado
+	● Pueden manejar historias más largas
+	● Pueden generalizar sobre contextos de palabras similares(w.e.)
+Desventajas:
+	● Mucho mayor tiempo de entrenamiento
+
+● El modelo feed forward se manifestó problemático para modelar lenguaje.
+● Otros modelos mejores para manejo de secuencias y dependencias de larga distancia:
+	● RRN
+	● LSTM
+
+========================================================================================================================================
+
+Podemos construir vectores usando los contextos de las palabras en un corpus
+– contextos similares => representaciones similares
+
+– Permite:
+	● Generalizar datos supervisados (generalization)
+	● Representar frases, oración (representation)
+	● Reducir Dimensión (eficiencia, graficar) (reduction)
+	● Mejorar con info. estructurada (Ej. WordNet)(retrofitting)
+
+Matriz de Co-ocurrencias
+------------------------
+– La componente (i,j) es la cantidad de veces que la palabra j aparece en el contexto i
+– Podemos considerar matrices:
+	● Palabra-Documento, Palabra-Palabra, ...
+
+
+Latent Semantic Analysis (LSA)
+------------------------------
+Se construye la matriz palabra-documento de frecuencias de ocurrencias (típicamente tf-idf)
+	– Se realiza la descomposición SVD truncada en k
+	– Como resultado se obtienen vectores para las palabras (y documentos) de dimensión arbitraria
+		● Se utilizan valores entre 100 y 300
+Los vectores obtenidos no son dispersos y están en una dimensión mucho menor
+	– La descomposición obtiene de las palabras la información de mayor relevancia y elimina la redundancia
+
+Word2vec
+--------
+Método popular
+Se entrena muy rápido
+Idea: predecir en vez de contar
+
+Word2Vec: Skip-Gram
+
+embeddings word2vec (skip-gram)
+Comenzar con vectores aleatorios 300-d como embeddings iniciales
+Use regresión logística para, dados
+- un conjunto de pares de palabras que co-ocurren como ejemplos positivos
+- un conjunto de pares de palabras que no co-ocurren como ejemplos negativos
+Entrenar el clasificador para distinguir entre los positivos y los negativos, cambiando los valores de los embeddings
+
+Los significados de las palabras están muchas veces vinculados entre sí, pero nada en su forma refleja esta asociación
+Los Embeddings son modelos vectoriales del significado que son buenos para modelar similitudes y relaciones de analogía.
+Se pueden usar pre-entrenados (en general, cuando no se dispone de mucho texto) o entrenar según la tarea que se está realizando
